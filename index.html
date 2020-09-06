@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, user-scalable=yes, initial-scale=1, maximum-scale=4">	
+<meta name="description" content="sha256 calculation by javascript.">
+<meta name="application-name" content="sha256">
+<meta name="author" content="hachisukansw">
+<style type="text/css">
+html,body {
+	height: calc(100% - 8px);
+	margin: 0px;
+	padding: 4px;
+	border: none;
+}
+* {
+	font-family: monospace, 'Courier New', Consolas;
+    font-size: 16px;
+	letter-spacing: 0px;
+	background-color: white;
+	color: black;
+}
+input[type="text"] {
+	width: 2em;
+	margin-left: 0.5em;
+    font-size: 14px;
+	border: 1px solid silver;
+	color: silver;
+}
+input[type="checkbox"] {
+	display: none;
+}
+label {
+	color: silver;
+}
+label::before {
+	content: "[ ]";
+}
+input[type="checkbox"]:checked + label {
+	color: black;
+}
+input[type="checkbox"]:checked + label::before {
+	content: "[X]";
+}
+input[type="checkbox"]:checked + label + input[type="text"] {
+	color: black;
+	border: 1px solid black;
+}
+#options {
+	margin: 0.5em;
+	padding-bottom: 0px;
+	color: silver;
+	line-height: 2em;
+}
+#result,#inputData {
+	box-sizing: border-box;
+	width: 100%;
+	height: 12em;
+	overflow-x: hidden;
+	overflow-y: auto;
+	padding: 0.25em;
+	border: 1px solid gray;
+	background-color: whitesmoke;
+	margin: 0px;
+	word-wrap: normal;
+
+}
+</style>
+</head>
+<body>
+SHA256 calculator<br />
+input:<br />
+<textarea id="inputData" spellcheck="false"></textarea>
+<p id="options">
+<input type="checkbox" id="trim" checked><label for="trim">Removes leading and trailing whitespace </label> |<br />
+<input type="button" id="refresh" value="calc!">
+</p>
+result:<br />
+<textarea id="result" spellcheck="false"></textarea>
+</body>
+<script>
+'use strict'
+
+class UI {
+	constructor() {
+		this._elements = {};
+		this.registElements();
+	}
+	elements() {
+		return this._elements;
+	}
+	registElements() {
+		for (let o of Array.from(document.getElementsByTagName('*'))) {
+			if (!o.id) continue;
+			this._elements[o.id] = o
+		}
+		for (let key in this._elements) {
+			this[key] = this._elements[key];
+		}
+	}
+}
+
+let ui = new UI();
+/*
+  https://developer.mozilla.org/en-US/docs/Web/API/SubtleCrypto/digest から引用
+*/
+async function digestMessage(message) {
+  const msgUint8 = new TextEncoder().encode(message);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', msgUint8);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+  return hashHex;
+}
+
+async function refresh(e) {
+	if (ui["trim"].checked) {
+		ui["inputData"].value = ui["inputData"].value.split(/[\r\n]+/).map(s=>s.trim()).join("\n")
+	}
+	let lines = ui["inputData"].value.split(/[\r\n]+/);
+	let promises = lines.map(s=>digestMessage(s));
+	ui["result"].value = (await Promise.all(promises)).join("\n");
+	ui["inputData"].focus();
+	ui["inputData"].select()
+
+}
+
+ui["refresh"].addEventListener("click", e=>refresh());
+
+</script>
+</html>
